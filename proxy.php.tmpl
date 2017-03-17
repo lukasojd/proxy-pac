@@ -1,0 +1,29 @@
+<?php
+$offset = strtotime('+24 hours');
+$expStr = "Expires: " . gmdate("D, d M Y H:i:s", $offset) . " GMT";
+
+header("Content-type: application/x-ns-proxy-autoconfig");
+header("Cache-Control: no-cache, must-revalidate");
+header($expStr);
+
+if(isset($_SERVER['SERVER_NAME'])) {
+	$clientip = $_SERVER['SERVER_NAME'];
+} else {
+	$clientip = $_SERVER['SERVER_ADDR'];
+}
+?>
+
+function FindProxyForURL(url, host) {
+	var proxy_yes = "PROXY <?php echo $clientip ?>:3128";
+	var proxy_no = "DIRECT";
+
+	{{ range $host, $containers := groupByMulti $ "Env.VIRTUAL_HOST" "," }}
+		{{ range $index, $value := $containers }}
+			{{ $network := index $value.Networks 0 }}
+			if (shExpMatch(host, "{{ $host  }}")) {
+				return proxy_yes;
+			}
+		{{ end }}
+	{{ end }}
+	return proxy_no;
+}
